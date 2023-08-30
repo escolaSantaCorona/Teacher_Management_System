@@ -24,11 +24,12 @@ import { db } from "../api/config";
 import { FormHeader } from "../components/formHeader";
 
 export const UpdateProfessorData = () => {
-  const { allProfsData } = useFormDataContext();
+  const { allProfsData, setAllProfsData } = useFormDataContext();
   const { register, setValue, handleSubmit, reset } = useForm();
   const [selectedProfessor, setSelectedProfessor] = useState<string | null>(
     null
   );
+  const [currentRecords, setCurrentRecords] = useState<unknown[]>([]);
 
   useEffect(() => {
     if (!selectedProfessor) {
@@ -51,6 +52,7 @@ export const UpdateProfessorData = () => {
           setValue(`ata${i + 1}`, professor.records[i].ata);
         }
       }
+      setCurrentRecords(professor?.records || []);
     }
   }, [setValue, allProfsData, selectedProfessor]);
 
@@ -64,7 +66,7 @@ export const UpdateProfessorData = () => {
       );
 
       // Reestruture os dados antes de atualizá-los
-      const records = professor?.records.map((_record, index) => {
+      const records = currentRecords.map((_record, index) => {
         return {
           ata: formData[`ata${index + 1}`],
           funcao: formData[`funcao${index + 1}`],
@@ -72,6 +74,7 @@ export const UpdateProfessorData = () => {
           turmas: formData[`turmas${index + 1}`],
         };
       });
+      
 
       const updatedData = {
         ...formData,
@@ -90,8 +93,8 @@ export const UpdateProfessorData = () => {
 
       update(ref(db, "professors/" + professor?.id), updatedData)
         .then(() => {
-          console.log("Data saved successfully.");
-          reset();
+          reset(); // resetando o formulário aqui
+    setCurrentRecords([]); // Também resetando os registros atuais
           alert("Dados atualizados com sucesso!");
         })
         .catch((error) => {
@@ -118,6 +121,26 @@ export const UpdateProfessorData = () => {
     } catch (error) {
       console.error("Erro ao deletar professor", error);
     }
+  };
+
+  const onAddYear = () => {
+    setCurrentRecords((prevRecords) => [
+      ...prevRecords,
+      {
+        periodo: "",
+        funcao: "",
+        turmas: "",
+        ata: "",
+      },
+    ]);
+  };
+
+  const onRemoveYear = (index: number) => {
+    setCurrentRecords((prevRecords) => {
+      const newRecords = [...prevRecords];
+      newRecords.splice(index, 1);
+      return newRecords;
+    });
   };
 
   return (
@@ -169,45 +192,65 @@ export const UpdateProfessorData = () => {
             <Typography sx={TituloSecaoStyle}>
               Seção 2 - Informações Documentais:
             </Typography>
-            {selectedProfessor &&
-              allProfsData
-                .find((prof) => prof.nome_professor === selectedProfessor)
-                ?.records.map((_record, professorIndex) => (
-                  <Grid container spacing={2} key={professorIndex}>
-                    {fieldsSessao2.map(({ id, label }) => (
-                      <Grid item xs={12} sm={3} key={id}>
-                        <TextField
-                          fullWidth
-                          id={`${id}${professorIndex + 1}`}
-                          variant="standard"
-                          label={label}
-                          {...register(`${id}${professorIndex + 1}`)}
-                        />
-                      </Grid>
-                    ))}
-                  </Grid>
-                ))}
+            {currentRecords.map((_record, professorIndex) => (
+              <div key={professorIndex}>
+                <Grid container spacing={2}>
+                  {fieldsSessao2.map(({ id, label }) => (
+                    <Grid item xs={12} sm={3} key={id}>
+                      <TextField
+                        fullWidth
+                        id={`${id}${professorIndex + 1}`}
+                        variant="standard"
+                        label={label}
+                        {...register(`${id}${professorIndex + 1}`)}
+                      />
+                    </Grid>
+                  ))}
+                </Grid>
+                {/* Aqui, adicionamos o botão de remover */}
+                <Box sx={{ display: "flex", justifyContent: "center" }}>
+                  <Button
+                    sx={{ marginTop: "5px", marginBottom: "5px" }}
+                    variant="contained"
+                    color="error"
+                    onClick={() => onRemoveYear(professorIndex)}
+                  >
+                    Remover Ano
+                  </Button>
+                </Box>
+              </div>
+            ))}
           </List>
-          <Button
-            variant="contained"
-            sx={{ marginTop: "6px" }}
-            type="submit"
-            color="primary"
-            disabled={!selectedProfessor} // se selectedProfessor for null ou vazio, desabilita o botão
-          >
-            {!selectedProfessor
-              ? "selecione um professor."
-              : "Atualizar dados"}
-          </Button>
-          <Button
-            variant="contained"
-            sx={{ marginTop: "6px", marginRight: "10px" }}
-            color="error"
-            disabled={!selectedProfessor} // se selectedProfessor for null ou vazio, desabilita o botão
-            onClick={onDeleteProfessor}
-          >
-            Deletar Professor
-          </Button>
+          <Box sx={{ display: "flex", gap: "10px", justifyContent: "center" }}>
+            <Button
+              variant="contained"
+              sx={{ marginTop: "6px" }}
+              type="submit"
+              color="primary"
+              disabled={!selectedProfessor}
+            >
+              {!selectedProfessor
+                ? "selecione um professor."
+                : "Atualizar dados"}
+            </Button>
+            <Button
+              variant="contained"
+              sx={{ marginTop: "6px", marginRight: "10px" }}
+              color="error"
+              disabled={!selectedProfessor}
+              onClick={onDeleteProfessor}
+            >
+              Deletar Professor
+            </Button>
+            <Button
+              variant="contained"
+              color="secondary"
+              sx={{ marginTop: "6px", marginRight: "10px" }}
+              onClick={onAddYear}
+            >
+              Adicionar Ano
+            </Button>
+          </Box>
         </form>
       </Box>
     </Container>
