@@ -22,14 +22,20 @@ import { fieldsSessao1, fieldsSessao2 } from "../utils/constants";
 import { ref, remove, update } from "firebase/database";
 import { db } from "../api/config";
 import { FormHeader } from "../components/formHeader";
+interface Record {
+  ata: string;
+  funcao: string;
+  periodo: string;
+  turmas: string;
+}
 
 export const UpdateProfessorData = () => {
-  const { allProfsData, setAllProfsData } = useFormDataContext();
+  const { allProfsData } = useFormDataContext();
   const { register, setValue, handleSubmit, reset } = useForm();
   const [selectedProfessor, setSelectedProfessor] = useState<string | null>(
     null
   );
-  const [currentRecords, setCurrentRecords] = useState<unknown[]>([]);
+  const [currentRecords, setCurrentRecords] = useState<Record[]>([]);
 
   useEffect(() => {
     if (!selectedProfessor) {
@@ -44,7 +50,7 @@ export const UpdateProfessorData = () => {
       setValue("inicio", professor?.inicio);
       setValue("matricula", professor?.matricula);
 
-      if (professor) {
+      if (professor && professor.records) {
         for (let i = 0; i < professor.records.length; i++) {
           setValue(`periodo${i + 1}`, professor.records[i].periodo);
           setValue(`funcao${i + 1}`, professor.records[i].funcao);
@@ -74,7 +80,6 @@ export const UpdateProfessorData = () => {
           turmas: formData[`turmas${index + 1}`],
         };
       });
-      
 
       const updatedData = {
         ...formData,
@@ -94,7 +99,7 @@ export const UpdateProfessorData = () => {
       update(ref(db, "professors/" + professor?.id), updatedData)
         .then(() => {
           reset(); // resetando o formulário aqui
-    setCurrentRecords([]); // Também resetando os registros atuais
+          setCurrentRecords([]); // Também resetando os registros atuais
           alert("Dados atualizados com sucesso!");
         })
         .catch((error) => {
@@ -137,11 +142,31 @@ export const UpdateProfessorData = () => {
 
   const onRemoveYear = (index: number) => {
     setCurrentRecords((prevRecords) => {
-      const newRecords = [...prevRecords];
-      newRecords.splice(index, 1);
-      return newRecords;
+        const newRecords = [...prevRecords];
+        newRecords.splice(index, 1);
+        return newRecords;
     });
-  };
+
+    // Aqui, há o reajuste dos valores dos campos no formulário.
+    for (let i = index; i < currentRecords.length - 1; i++) {
+        setValue(`ata${i + 1}`, currentRecords[i + 1].ata);
+        setValue(`funcao${i + 1}`, currentRecords[i + 1].funcao);
+        setValue(`periodo${i + 1}`, currentRecords[i + 1].periodo);
+        setValue(`turmas${i + 1}`, currentRecords[i + 1].turmas);
+    }
+    // E finalmente,  há a removação o último conjunto de campos, pois ele não é mais necessário.
+    setValue(`ata${currentRecords.length}`, "");
+    setValue(`funcao${currentRecords.length}`, "");
+    setValue(`periodo${currentRecords.length}`, "");
+    setValue(`turmas${currentRecords.length}`, "");
+};
+
+
+
+  useEffect(() => {
+    console.log(currentRecords);
+  }, [currentRecords]);
+  
 
   return (
     <Container>
@@ -192,8 +217,10 @@ export const UpdateProfessorData = () => {
             <Typography sx={TituloSecaoStyle}>
               Seção 2 - Informações Documentais:
             </Typography>
-            {currentRecords.map((_record, professorIndex) => (
-              <div key={professorIndex}>
+            {currentRecords.map((record, professorIndex) => (
+              <div key={record.ata + record.periodo}>
+                {" "}
+              
                 <Grid container spacing={2}>
                   {fieldsSessao2.map(({ id, label }) => (
                     <Grid item xs={12} sm={3} key={id}>
@@ -209,14 +236,38 @@ export const UpdateProfessorData = () => {
                 </Grid>
                 {/* Aqui, adicionamos o botão de remover */}
                 <Box sx={{ display: "flex", justifyContent: "center" }}>
-                  <Button
-                    sx={{ marginTop: "5px", marginBottom: "5px" }}
-                    variant="contained"
-                    color="error"
-                    onClick={() => onRemoveYear(professorIndex)}
-                  >
-                    Remover Ano
-                  </Button>
+                  {currentRecords.length === 1 ? (
+                    <Box
+                      sx={{
+                        display: "flex",
+                        flexDirection: "column",
+                        justifyContent: "center",
+                      }}
+                    >
+                      <Button
+                        sx={{ marginTop: "5px", marginBottom: "5px" }}
+                        variant="contained"
+                        color="error"
+                        onClick={() => onRemoveYear(professorIndex)}
+                        disabled
+                      >
+                        Remover Ano
+                      </Button>
+                      <Typography>
+                        Esse campo não pode ser removido pois é necessario ter
+                        no mínimo 1 registro de trabalho
+                      </Typography>
+                    </Box>
+                  ) : (
+                    <Button
+                      sx={{ marginTop: "5px", marginBottom: "5px" }}
+                      variant="contained"
+                      color="error"
+                      onClick={() => onRemoveYear(professorIndex)}
+                    >
+                      Remover Ano
+                    </Button>
+                  )}
                 </Box>
               </div>
             ))}
@@ -247,6 +298,7 @@ export const UpdateProfessorData = () => {
               color="secondary"
               sx={{ marginTop: "6px", marginRight: "10px" }}
               onClick={onAddYear}
+              disabled={!selectedProfessor}
             >
               Adicionar Ano
             </Button>
