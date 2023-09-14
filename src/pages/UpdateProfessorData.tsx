@@ -219,8 +219,7 @@ export const UpdateProfessorData = () => {
             </Typography>
             {currentRecords.map((record, professorIndex) => (
               <div key={record.ata + record.periodo}>
-                {" "}
-              
+                {" "} 
                 <Grid container spacing={2}>
                   {fieldsSessao2.map(({ id, label }) => (
                     <Grid item xs={12} sm={3} key={id}>
@@ -229,12 +228,12 @@ export const UpdateProfessorData = () => {
                         id={`${id}${professorIndex + 1}`}
                         variant="standard"
                         label={label}
+                         sx={{FontSize: "6px" }}
                         {...register(`${id}${professorIndex + 1}`)}
                       />
                     </Grid>
                   ))}
                 </Grid>
-                {/* Aqui, adicionamos o botão de remover */}
                 <Box sx={{ display: "flex", justifyContent: "center" }}>
                   {currentRecords.length === 1 ? (
                     <Box
